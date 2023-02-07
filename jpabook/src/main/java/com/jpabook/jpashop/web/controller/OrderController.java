@@ -36,7 +36,7 @@ public class OrderController {
                         @RequestParam("count") int count) {
 
         orderService.order(memberId, itemId, count);
-        return "rediect:/orders";
+        return "redirect:/orders";
     }
 
     @GetMapping("/orders")
