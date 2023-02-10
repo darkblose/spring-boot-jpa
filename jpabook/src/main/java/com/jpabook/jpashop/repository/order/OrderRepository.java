@@ -1,7 +1,9 @@
 package com.jpabook.jpashop.repository.order;
 
 import com.jpabook.jpashop.domain.Order;
-import lombok.RequiredArgsConstructor;
+import com.jpabook.jpashop.domain.OrderStatus;
+import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -12,11 +14,19 @@ import javax.persistence.criteria.*;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.jpabook.jpashop.domain.QMember.member;
+import static com.jpabook.jpashop.domain.QOrder.order;
+
 @Repository
 @Transactional(readOnly = true)
-@RequiredArgsConstructor
 public class OrderRepository {
     private final EntityManager em;
+    private final JPAQueryFactory query;
+
+    public OrderRepository(EntityManager em) {
+        this.em = em;
+        this.query = new JPAQueryFactory(em);
+    }
 
     @Transactional
     public void save(Order order) {
@@ -25,6 +35,32 @@ public class OrderRepository {
 
     public Order findOne(Long orderId) {
         return em.find(Order.class, orderId);
+    }
+
+    public List<Order> findUsingQueryDsl(OrderSearch orderSearch) {
+        return query.select(order)
+                .from(order)
+                .join(order.member, member)
+                .where(
+                        statusEq(orderSearch.getOrderStatus()),
+                        nameLike(orderSearch.getMemberName())
+                )
+                .limit(1000)
+                .fetch();
+    }
+
+    private BooleanExpression statusEq(OrderStatus status) {
+        if (status == null) {
+            return null;
+        }
+        return order.status.eq(status);
+    }
+
+    private BooleanExpression nameLike(String name) {
+        if (!StringUtils.hasText(name)) {
+            return null;
+        }
+        return member.name.like("%" + name + "%");
     }
 
     public List<Order> findAll(OrderSearch orderSearch) {
@@ -117,11 +153,21 @@ public class OrderRepository {
 
     public List<Order> findAllWithItem() {
         return em.createQuery(
-                "select o from Order o" +
+                "select distinct o from Order o" +
                         " join fetch o.member m" +
                         " join fetch o.delivery d" +
                         " join fetch o.orderItems oi" +
                         " join fetch oi.item i", Order.class
         ).getResultList();
+    }
+
+    public List<Order> findAllWithMemberDelivery(int offset, int limit) {
+        return em.createQuery(
+                        "select o from Order o" +
+                                " join fetch o.member m" +
+                                " join fetch o.delivery d", Order.class)
+                .setFirstResult(offset)
+                .setMaxResults(limit)
+                .getResultList();
     }
 }
