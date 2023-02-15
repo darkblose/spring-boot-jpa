@@ -36,6 +36,12 @@ public class MemberJpaRepository {
         return Optional.ofNullable(member);
     }
 
+    public List<Member> findByUsername(String username) {
+        return em.createNamedQuery("Member.findByUsername", Member.class)
+                .setParameter("username", username)
+                .getResultList();
+    }
+
     public List<Member> findByUsernameAndAgeGreaterThan(String username, int age) {
         return em.createQuery(
                         "select m from Member m where m.username = :username and m.age > :age"
