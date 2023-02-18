@@ -8,7 +8,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -150,5 +152,38 @@ class MemberRepositoryTest {
         MemberDto findMemberDto = memberDto.get(0);
         assertThat(findMemberDto.getUsername()).isEqualTo("AAA");
         assertThat(findMemberDto.getTeamName()).isEqualTo("teamA");
+    }
+
+    @Test
+    public void findByNames() throws Exception {
+        // given
+        Member member1 = new Member("AAA", 10);
+        Member member2 = new Member("BBB", 20);
+
+        memberRepository.save(member1);
+        memberRepository.save(member2);
+        // when
+        List<Member> result = memberRepository.findByNames(Arrays.asList("AAA", "BBB"));
+        // then
+        assertThat(result).containsExactly(member1, member2);
+        for (Member member : result) {
+            System.out.println("member = " + member);
+        }
+    }
+
+    @Test
+    public void returnType() throws Exception {
+        // given
+        Member member1 = new Member("AAA", 10);
+        Member member2 = new Member("BBB", 20);
+
+        memberRepository.save(member1);
+        memberRepository.save(member2);
+        // when
+        List<Member> resultList = memberRepository.findListByUsername("AAA");
+        Member result = memberRepository.findMemberByUsername("AAA");
+        Optional<Member> optionalResult = memberRepository.findOptionalMemberByUsername("AAA");
+        // then
+        
     }
 }
