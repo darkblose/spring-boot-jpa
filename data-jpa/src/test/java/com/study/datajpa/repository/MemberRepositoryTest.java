@@ -30,6 +30,9 @@ class MemberRepositoryTest {
     TeamRepository teamRepository;
 
     @Autowired
+    MemberQueryRepository memberQueryRepository;
+
+    @Autowired
     EntityManager em;
 
     @Test
@@ -280,5 +283,120 @@ class MemberRepositoryTest {
         System.out.println("member5 = " + member5);
         // then
         assertThat(resultCount).isEqualTo(3);
+    }
+
+    @Test
+    public void findMemberLazy() throws Exception {
+        // given
+        Team teamA = new Team("teamA");
+        Team teamB = new Team("teamB");
+        teamRepository.save(teamA);
+        teamRepository.save(teamB);
+
+        Member member1 = new Member("member1", 10, teamA);
+        Member member2 = new Member("member2", 10, teamB);
+        memberRepository.save(member1);
+        memberRepository.save(member2);
+
+        em.flush();
+        em.clear();
+        // when : N + 1 문제 발생
+        List<Member> members = memberRepository.findAll(); // select Member (1)
+        // then
+        for (Member member : members) {
+            System.out.println("member = " + member.getUsername());
+            System.out.println("member.teamClass = " + member.getTeam().getClass());
+            System.out.println("member.team = " + member.getTeam().getName()); // select Team (N)
+        }
+    }
+
+    @Test
+    public void findMemberFetchJoin() throws Exception {
+        // given
+        Team teamA = new Team("teamA");
+        Team teamB = new Team("teamB");
+        teamRepository.save(teamA);
+        teamRepository.save(teamB);
+
+        Member member1 = new Member("member1", 10, teamA);
+        Member member2 = new Member("member2", 10, teamB);
+        memberRepository.save(member1);
+        memberRepository.save(member2);
+
+        em.flush();
+        em.clear();
+        // when : N + 1 문제 fetch join 으로 해결
+        List<Member> members = memberRepository.findMemberFetchJoin(); // select Member + Team
+        // then
+        for (Member member : members) {
+            System.out.println("member = " + member.getUsername());
+            System.out.println("member.teamClass = " + member.getTeam().getClass());
+            System.out.println("member.team = " + member.getTeam().getName());
+        }
+    }
+
+    @Test
+    public void findEntityGraph() throws Exception {
+        // given
+        Team teamA = new Team("teamA");
+        Team teamB = new Team("teamB");
+        teamRepository.save(teamA);
+        teamRepository.save(teamB);
+
+        Member member1 = new Member("member1", 10, teamA);
+        Member member2 = new Member("member1", 10, teamB);
+        memberRepository.save(member1);
+        memberRepository.save(member2);
+
+        em.flush();
+        em.clear();
+        // when : N + 1 문제 fetch join 으로 해결
+        List<Member> members = memberRepository.findEntityGraphByUsername("member1"); // select Member + Team
+        // then
+        for (Member member : members) {
+            System.out.println("member = " + member.getUsername());
+            System.out.println("member.teamClass = " + member.getTeam().getClass());
+            System.out.println("member.team = " + member.getTeam().getName());
+        }
+    }
+
+    @Test
+    public void queryHint() throws Exception {
+        // given
+        Member member1 = new Member("member1", 10);
+        memberRepository.save(member1);
+        em.flush();
+        em.clear();
+        // when
+        Member findMember = memberRepository.findReadOnlyById(member1.getId());
+        findMember.setUsername("member2");
+        System.out.println("findMember = " + findMember);
+
+        em.flush();
+        em.clear();
+
+        Member findMember2 = memberRepository.findReadOnlyById(member1.getId());
+        System.out.println("findMember2 = " + findMember2);
+        // then
+    }
+
+    @Test
+    public void lock() throws Exception {
+        // given
+        Member member1 = new Member("member1", 10);
+        memberRepository.save(member1);
+        em.flush();
+        em.clear();
+        // when
+        List<Member> result = memberRepository.findLockByUsername("member1");
+        // then
+    }
+
+    @Test
+    public void callCustom() throws Exception {
+        // given
+        List<Member> result = memberRepository.findMemberCustom();
+        // when
+        // then
     }
 }
