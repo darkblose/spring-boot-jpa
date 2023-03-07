@@ -9,6 +9,7 @@ import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.study.querydsl.dto.MemberDto;
+import com.study.querydsl.dto.QMemberDto;
 import com.study.querydsl.dto.UserDto;
 import com.study.querydsl.entity.Member;
 import com.study.querydsl.entity.QMember;
@@ -115,9 +116,9 @@ public class QuerydslBasicTest {
                 .selectFrom(member)
                 .fetch();
 
-        Member fetchOne = query
-                .selectFrom(member)
-                .fetchOne();
+//        Member fetchOne = query
+//                .selectFrom(member)
+//                .fetchOne();
 
         Member fetchFirst = query
                 .selectFrom(member)
@@ -616,6 +617,27 @@ public class QuerydslBasicTest {
         // then
         for (UserDto userDto : result) {
             System.out.println("userDto = " + userDto);
+        }
+    }
+
+    /**
+     * Constructor 방식은 Runtime Error 로 발생함.
+     * QueryProjection 은 Compile Error 로 보장할 수 있음.
+     * 하지만, 2가지 단점이 발생함
+     * 1. Q파일 생성
+     * 2. 아키텍쳐 관점에서: DTO 가 QueryDsl 에 대한 의존성을 갖게 됨. DTO 는 여러 layer 에서 참조하게 되는데, 그 곳들에서 Dto -> QueryDsl 로 많이 의존하게 됨.
+     */
+    @Test
+    public void findDtoByQueryProjection() throws Exception {
+        // given
+        // when
+        List<MemberDto> result = query
+                .select(new QMemberDto(member.username, member.age))
+                .from(member)
+                .fetch();
+        // then
+        for (MemberDto memberDto : result) {
+            System.out.println("memberDto = " + memberDto);
         }
     }
 }
